@@ -49,25 +49,25 @@ class Package
     /**
      * The distribution resolved for this package.
      *
-     * @var string
+     * @var string|null
      */
     protected $resolved;
 
     /**
-     * Packages that require this package, i.e. packages who's dependencies are
+     * Packages that require this package, i.e. packages whose dependencies are
      * (in part) resolved by this one.
      *
      * @var Package[]
      */
-    protected $resolves;
+    protected $resolves = [];
 
     /**
      * Depth in the dependency tree. Only initialized once the YarnLock computes
      * the depth of all contained packages.
      *
-     * @var int
+     * @var int|null
      */
-    protected $depth = null;
+    protected $depth;
 
     /**
      * @return string
@@ -102,7 +102,7 @@ class Package
     }
 
     /**
-     * @return string
+     * @return string|null
      */
     public function getResolved()
     {
@@ -110,7 +110,7 @@ class Package
     }
 
     /**
-     * @param string $resolved
+     * @param string|null $resolved
      */
     public function setResolved($resolved)
     {
@@ -138,7 +138,7 @@ class Package
      */
     public function addVersion($versionString)
     {
-        array_push($this->satisfies, $versionString);
+        $this->satisfies[] = $versionString;
     }
 
     /**
@@ -208,9 +208,6 @@ class Package
      */
     public function addResolves(Package $package)
     {
-        if ($this->resolves === null) {
-            $this->resolves = [];
-        }
         if (in_array($package, $this->resolves)) {
             return;
         }
@@ -229,7 +226,7 @@ class Package
         if (in_array($package, $this->$field)) {
             return;
         }
-        array_push($this->$field, $package);
+        $this->$field[] = $package;
         $package->addResolves($this);
     }
 
@@ -257,7 +254,7 @@ class Package
     }
 
     /**
-     * Printing a package should contain it's name and version.
+     * Printing a package should contain its name and version.
      *
      * @return string
      */

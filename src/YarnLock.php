@@ -52,7 +52,7 @@ class YarnLock
             $package = new Package();
             $package->setName($packageName);
             $package->setVersion($packageVersion);
-            $package->setResolved($dependencyInformation->resolved);
+            $package->setResolved(isset($dependencyInformation->resolved) ? $dependencyInformation->resolved : null);
             foreach ($packageVersionStrings as &$packageVersionString) {
                 $packageVersionString = Parser::splitVersionString($packageVersionString)[1];
                 $package->addVersion($packageVersionString);
@@ -61,11 +61,12 @@ class YarnLock
                     'data' => $dependencyInformation,
                 ];
             }
+            unset($packageVersionString);
             $allPackages[] = $package;
         }
 
-        foreach ($packageVersionMap as $packageName => $versions) {
-            foreach ($versions as $version => $packageInformation) {
+        foreach ($packageVersionMap as $versions) {
+            foreach ($versions as $packageInformation) {
                 /** @var Package $package */
                 $package = $packageInformation['package'];
                 if (isset($package->__handled)) {
@@ -82,8 +83,10 @@ class YarnLock
                     $field = Package::getDependencyField($dependencyType);
                     if (isset($data->$field)) {
                         foreach ($data->$field as $dependencyName => $dependencyVersion) {
-                            $dependencyPackage = $packageVersionMap[$dependencyName][$dependencyVersion]['package'];
-                            $package->addDependency($dependencyPackage, $dependencyType);
+                            if (isset($packageVersionMap[$dependencyName][$dependencyVersion]['package'])) {
+                                $dependencyPackage = $packageVersionMap[$dependencyName][$dependencyVersion]['package'];
+                                $package->addDependency($dependencyPackage, $dependencyType);
+                            }
                         }
                     }
                 }
@@ -133,6 +136,7 @@ class YarnLock
      */
     public function getPackagesByDepth($start, $end = 0)
     {
+        $this->calculateDepth();
         if ($end === 0 || ($end !== null && $end < $start)) {
             $end = $start + 1;
         }
@@ -141,7 +145,7 @@ class YarnLock
             if ($depth === null) {
                 return $end === null;
             }
-            $to = $end === null ? true : $depth < $end;
+            $to = $end === null || $depth < $end;
             return $depth >= $start && $to;
         }));
     }
@@ -230,7 +234,8 @@ class YarnLock
      * @param Package $node
      * @param int $depth
      */
-    protected function calculateChildDepth(Package $node, $depth) {
+    protected function calculateChildDepth(Package $node, $depth)
+    {
         if ($node->getDepth() !== null && $node->getDepth() <= $depth) {
             return;
         }
