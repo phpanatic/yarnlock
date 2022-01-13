@@ -75,8 +75,8 @@ class Parser
             if ($line[0] === '#') {
                 continue;
             }
-            if ($line[strlen($line) - 1] == ':') {
-                $indentationLevel += 1;
+            if ($line[strlen($line) - 1] === ':') {
+                ++$indentationLevel;
                 $currentKey = substr($line, 0, -1);
                 $current->$currentKey = new \stdClass();
                 $current->$currentKey->__parent = $current;
@@ -138,10 +138,10 @@ class Parser
         return $input;
     }
 
-    protected static function cleanupObject(&$object)
+    protected static function cleanupObject($object)
     {
         unset($object->__parent);
-        foreach (get_object_vars($object) as $key => $value) {
+        foreach (get_object_vars($object) as $value) {
             if ($value instanceof \stdClass) {
                 self::cleanupObject($value);
             }
@@ -177,16 +177,11 @@ class Parser
             $currentKey = '';
             $isString = false;
             for ($i = 0; $i < strlen($key); $i++) {
-                if ($key[$i] == '"') {
-                    if (!$isString) {
-                        $isString = true;
-                        continue;
-                    } else {
-                        $isString = false;
-                        continue;
-                    }
+                if ($key[$i] === '"') {
+                    $isString = !$isString;
+                    continue;
                 }
-                if (!$isString && $key[$i] == ',') {
+                if (!$isString && $key[$i] === ',') {
                     $result[] = $currentKey;
                     $currentKey = '';
                     continue;
@@ -197,24 +192,30 @@ class Parser
                 $result[] = $currentKey;
             }
         }
-        $result = array_map(function($e) { return trim($e); }, $result);
-        return $result;
+
+        return array_map('trim', $result);
     }
 
     /**
-     * To avoid splitting on scoped package-names, every but the last @ are considered
-     * package name.
-     *
      * @param string $versionString
      * @return string[]
      */
     public static function splitVersionString($versionString)
     {
-         $parts = explode('@', $versionString);
-         $version = array_pop($parts);
-         return [
-             implode('@', $parts),
-             $version
-         ];
+        // Scoped package names start with an "@" → skip the first character.
+        // Note: $versionString may contain even more than two "@" if version is "protocol://user@host..."
+        $location = strpos($versionString, '@', 1);
+        if ($location > 0) {
+            $name = substr($versionString, 0, $location);
+            $version = substr($versionString, $location + 1);
+
+            // Handle special cases that package.json allows for "Git URLs as Dependencies"
+            if (preg_match('/#(semver:)?(.+)$/', $version, $matches)) {
+                $version = $matches[2];
+            }
+
+            return [$name, $version];
+        }
+        throw new \InvalidArgumentException('Version string is expected to contain "@" separating name from version.');
     }
 }

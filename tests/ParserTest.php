@@ -219,6 +219,21 @@ class ParserTest extends TestCase
             ['@gulp-sourcemaps/identity-map', '1.X'],
             Parser::splitVersionString('@gulp-sourcemaps/identity-map@1.X')
         );
+
+        $this->assertEquals(
+            ['@foo/bar', '^1.2.3'],
+            Parser::splitVersionString('@foo/bar@git+ssh://user@host:1234/foo/bar#semver:^1.2.3')
+        );
+
+        $this->assertEquals(
+            ['@foo/bar', 'v1.2.3'],
+            Parser::splitVersionString('@foo/bar@git://user@host/foo/bar.git#v1.2.3')
+        );
+
+        $this->assertEquals(
+            ['@foo/bar', 'file:vendor/foo/bar'],
+            Parser::splitVersionString('@foo/bar@file:vendor/foo/bar')
+        );
     }
 
     /**
