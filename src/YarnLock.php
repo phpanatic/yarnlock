@@ -65,14 +65,15 @@ class YarnLock
             $allPackages[] = $package;
         }
 
+        $handledPackages = [];
         foreach ($packageVersionMap as $versions) {
             foreach ($versions as $packageInformation) {
                 /** @var Package $package */
                 $package = $packageInformation['package'];
-                if (isset($package->__handled)) {
+                if (in_array($package, $handledPackages, true)) {
                     continue;
                 }
-                $package->__handled = true;
+                $handledPackages[] = $package;
                 $data = $packageInformation['data'];
                 foreach ([
                     Package::DEPENDENCY_TYPE_DEFAULT,

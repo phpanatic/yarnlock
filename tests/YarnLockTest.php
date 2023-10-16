@@ -1,29 +1,27 @@
 <?php
 
 use Mindscreen\YarnLock\Package;
+use Mindscreen\YarnLock\ParserException;
 use Mindscreen\YarnLock\YarnLock;
 
 use PHPUnit\Framework\TestCase;
 
 class YarnLockTest extends TestCase
 {
-    /**
-     * @var YarnLock
-     */
-    protected $yarnLock;
+    protected YarnLock $yarnLock;
 
     /**
      * Creating a lock file from null should throw an exception.
-     * @throws \Mindscreen\YarnLock\ParserException
+     * @throws ParserException
      */
-    public function testNullInput()
+    public function testNullInput(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionCode(1519201965);
         YarnLock::fromString(null);
     }
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $yarnLockContents = file_get_contents('tests/parserinput/example-yarn-package.lock');
         $this->yarnLock = YarnLock::fromString($yarnLockContents);
@@ -32,7 +30,7 @@ class YarnLockTest extends TestCase
     /**
      * A package should be found with every satisfying version string.
      */
-    public function testPackageExists()
+    public function testPackageExists(): void
     {
         // babel-core@^6.0.0, babel-core@^6.11.4, babel-core@^6.14.0:
         $this->assertTrue($this->yarnLock->hasPackage('babel-core'));
@@ -45,9 +43,9 @@ class YarnLockTest extends TestCase
 
     /**
      * Querying for an existing package with different satisfied versions should yield in the
-     * correct package. Asking for a unknown package should return null.
+     * correct package. Asking for an unknown package should return null.
      */
-    public function testGetPackage()
+    public function testGetPackage(): void
     {
         $packageName = 'babel-core';
         $package = $this->yarnLock->getPackage($packageName);
@@ -67,7 +65,7 @@ class YarnLockTest extends TestCase
     /**
      * The maximal depth of the dependency tree
      */
-    public function testDepth()
+    public function testDepth(): void
     {
         $this->assertEquals(10, $this->yarnLock->getDepth());
     }
@@ -77,15 +75,15 @@ class YarnLockTest extends TestCase
      * @param Package[] $packages
      * @return string[]
      */
-    protected function getPackageStrings(array $packages)
+    protected function getPackageStrings(array $packages): array
     {
-        return array_values(array_map(function(Package $p) { return $p->__toString(); }, $packages));
+        return array_values(array_map(static function(Package $p) { return $p->__toString(); }, $packages));
     }
 
     /**
      * The argument syntax should return correct subsets
      */
-    public function testGetPackagesByDepth()
+    public function testGetPackagesByDepth(): void
     {
         $rootPackages = [
             $this->yarnLock->getPackage('lodash', '^4.16.2'),
@@ -93,18 +91,17 @@ class YarnLockTest extends TestCase
         ];
         $this->yarnLock->calculateDepth($rootPackages);
         $depth0 = $this->yarnLock->getPackagesByDepth(0);
-        $this->assertEquals(count($rootPackages), count($depth0));
+        $this->assertSameSize($rootPackages, $depth0);
 
         $depth1 = $this->yarnLock->getPackagesByDepth(1);
         $depth2 = $this->yarnLock->getPackagesByDepth(2);
         $depth12 = $this->yarnLock->getPackagesByDepth(1, 3);
-        $this->assertEquals(count($depth1) + count($depth2), count($depth12));
+        $this->assertCount(count($depth1) + count($depth2), $depth12);
 
         // should not be calculated again
         $this->yarnLock->calculateDepth();
         $depthStart = $this->yarnLock->getPackagesByDepth(0, 2);
         $depthRest = $this->yarnLock->getPackagesByDepth(2, null);
-        var_dump(count($depthRest));
         $allPackages = $this->yarnLock->getPackages();
         $this->assertEquals(count($allPackages), count($depthStart) + count($depthRest));
     }
@@ -112,17 +109,17 @@ class YarnLockTest extends TestCase
     /**
      * Packages can be required in multiple versions, each satisfying certain requirements.
      */
-    public function testGetPackagesByName()
+    public function testGetPackagesByName(): void
     {
         $packages = $this->yarnLock->getPackagesByName('source-map');
-        $this->assertEquals(4, count($packages));
+        $this->assertCount(4, $packages);
         $expectedVersions = [
             ['^0.4.4'],
             ['^0.5.0', '^0.5.3', '~0.5.1'],
             ['~0.2.0'],
             ['0.1.32'],
         ];
-        $versions = array_map(function(Package $p) { return $p->getSatisfiedVersions(); }, $packages);
+        $versions = array_map(static function(Package $p) { return $p->getSatisfiedVersions(); }, $packages);
         $versions = array_values($versions);
         $this->assertEquals($expectedVersions, $versions);
     }
@@ -130,7 +127,7 @@ class YarnLockTest extends TestCase
     /**
      * The package-name should contain name and actual version for every package
      */
-    public function testPackageString()
+    public function testPackageString(): void
     {
         foreach ($this->yarnLock->getPackages() as $package) {
             $this->assertEquals($package->getName() . '@' . $package->getVersion(), $package->__toString());
@@ -140,17 +137,17 @@ class YarnLockTest extends TestCase
     /**
      * The package-name should contain name and actual version for every package
      */
-    public function testResolvedSet()
+    public function testResolvedSet(): void
     {
         foreach ($this->yarnLock->getPackages() as $package) {
             $this->assertNotEmpty($package->getResolved());
         }
     }
 
-    public function testYarnExample()
+    public function testYarnExample(): void
     {
         $yarnLockContents = file_get_contents('tests/parserinput/deep');
         $yarnLock = YarnLock::fromString($yarnLockContents);
-        $this->assertEquals(4, count($yarnLock->getPackages()));
+        $this->assertCount(4, $yarnLock->getPackages());
     }
 }

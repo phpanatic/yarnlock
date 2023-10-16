@@ -6,13 +6,9 @@ use PHPUnit\Framework\TestCase;
 
 class ParserTest extends TestCase
 {
+    protected Parser $parser;
 
-    /**
-     * @var Parser
-     */
-    protected $parser;
-
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->parser = new Parser();
     }
@@ -21,7 +17,7 @@ class ParserTest extends TestCase
      * Not using valid input should throw an exception
      * @throws ParserException
      */
-    public function testNullInput()
+    public function testNullInput(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionCode(1519142104);
@@ -32,7 +28,7 @@ class ParserTest extends TestCase
      * Comments don't have to follow indentation rules
      * @throws ParserException
      */
-    public function testComments()
+    public function testComments(): void
     {
         $fileContents = file_get_contents('tests/parserinput/comments');
         $result = $this->parser->parse($fileContents, true);
@@ -50,7 +46,7 @@ class ParserTest extends TestCase
      * Using mixed indentation characters (like tab and space) should throw an exception
      * @throws ParserException
      */
-    public function testMixedIndentations()
+    public function testMixedIndentations(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionCode(1519140104);
@@ -62,7 +58,7 @@ class ParserTest extends TestCase
      * Inconsistent indentations should throw an exception
      * @throws ParserException
      */
-    public function testMixedIndentationDepth()
+    public function testMixedIndentationDepth(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionCode(1519140379);
@@ -74,7 +70,7 @@ class ParserTest extends TestCase
      * Indentation should work with other indentation than two spaces
      * @throws ParserException
      */
-    public function testDifferentIndentationDepth()
+    public function testDifferentIndentationDepth(): void
     {
         $fileContents = file_get_contents('tests/parserinput/indentation_depth');
         $result = $this->parser->parse($fileContents, true);
@@ -92,7 +88,7 @@ class ParserTest extends TestCase
      * A key-value cannot be further indented as the previous one
      * @throws ParserException
      */
-    public function testUnexpectedIndentation()
+    public function testUnexpectedIndentation(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionCode(1519140493);
@@ -104,7 +100,7 @@ class ParserTest extends TestCase
      * An array key requires following properties
      * @throws ParserException
      */
-    public function testMissingProperty()
+    public function testMissingProperty(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionCode(1519142311);
@@ -116,7 +112,7 @@ class ParserTest extends TestCase
      * Comments following an array key should still require properties
      * @throws ParserException
      */
-    public function testMissingProperty2()
+    public function testMissingProperty2(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionCode(1519142311);
@@ -128,7 +124,7 @@ class ParserTest extends TestCase
      * The input ending on an array object without values should throw an exception
      * @throws ParserException
      */
-    public function testMissingPropertyEof()
+    public function testMissingPropertyEof(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionCode(1519142311);
@@ -140,7 +136,7 @@ class ParserTest extends TestCase
      * Keys without value should throw an exception
      * @throws ParserException
      */
-    public function testMissingPropertyValue()
+    public function testMissingPropertyValue(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionCode(1519141916);
@@ -151,13 +147,13 @@ class ParserTest extends TestCase
      * Different values should yield different value-types
      * @throws ParserException
      */
-    public function testDataTypes()
+    public function testDataTypes(): void
     {
         $fileContents = file_get_contents('tests/parserinput/datatypes');
         $result = $this->parser->parse($fileContents);
-        $this->assertSame(true, $result->bool_t);
-        $this->assertSame(false, $result->bool_f);
-        $this->assertSame(null, $result->unset);
+        $this->assertTrue($result->bool_t);
+        $this->assertFalse($result->bool_f);
+        $this->assertNull($result->unset);
         $this->assertSame(42, $result->int);
         $this->assertSame(13.37, $result->float);
         $this->assertSame('true', $result->string_t);
@@ -169,46 +165,46 @@ class ParserTest extends TestCase
      * The parser should create a valid \stdClass structure
      * @throws ParserException
      */
-    public function testYarnExampleObject()
+    public function testYarnExampleObject(): void
     {
         $fileContents = file_get_contents('tests/parserinput/valid_input');
         $result = $this->parser->parse($fileContents);
-        $this->assertEquals(true, $result instanceof \stdClass);
-        $this->assertEquals(4, count(get_object_vars($result)));
-        $this->assertObjectHasAttribute('package-1@^1.0.0', $result);
+        $this->assertInstanceOf(stdClass::class, $result);
+        $this->assertCount(4, get_object_vars($result));
+        $this->assertTrue(property_exists($result, 'package-1@^1.0.0'));
         $key = 'package-3@^3.0.0';
         $package3 = $result->$key;
-        $this->assertObjectHasAttribute('version', $package3);
-        $this->assertObjectHasAttribute('resolved', $package3);
-        $this->assertObjectHasAttribute('dependencies', $package3);
+        $this->assertTrue(property_exists($package3, 'version'));
+        $this->assertTrue(property_exists($package3, 'resolved'));
+        $this->assertTrue(property_exists($package3, 'dependencies'));
         $package3_dependencies = $package3->dependencies;
-        $this->assertEquals(1, count(get_object_vars($package3_dependencies)));
+        $this->assertCount(1, get_object_vars($package3_dependencies));
     }
 
     /**
      * The parser should create a valid array structure
      * @throws ParserException
      */
-    public function testYarnExampleArray()
+    public function testYarnExampleArray(): void
     {
         $fileContents = file_get_contents('tests/parserinput/valid_input');
         $result = $this->parser->parse($fileContents, true);
-        $this->assertEquals(true, is_array($result));
-        $this->assertEquals(4, count($result));
+        $this->assertIsArray($result);
+        $this->assertCount(4, $result);
         $this->assertArrayHasKey('package-1@^1.0.0', $result);
         $package3 = $result['package-3@^3.0.0'];
         $this->assertArrayHasKey('version', $package3);
         $this->assertArrayHasKey('resolved', $package3);
         $this->assertArrayHasKey('dependencies', $package3);
         $package3_dependencies = $package3['dependencies'];
-        $this->assertEquals(true, is_array($package3_dependencies));
-        $this->assertEquals(1, count($package3_dependencies));
+        $this->assertIsArray($package3_dependencies);
+        $this->assertCount(1, $package3_dependencies);
     }
 
     /**
      * Scoped packages names should not be split at the first '@'
      */
-    public function testVersionSplitting()
+    public function testVersionSplitting(): void
     {
         $this->assertEquals(
             ['gulp-sourcemaps', '2.6.4'],
@@ -240,7 +236,7 @@ class ParserTest extends TestCase
      * Single-value keys should not be split at spaces if they are surrounded with quotes
      * @throws ParserException
      */
-    public function testQuotedKeys()
+    public function testQuotedKeys(): void
     {
         $fileContents = file_get_contents('tests/parserinput/quoted-key');
         $result = $this->parser->parse($fileContents, true);
@@ -251,7 +247,7 @@ class ParserTest extends TestCase
         }
     }
 
-    public function testParseVersionStrings()
+    public function testParseVersionStrings(): void
     {
         $input = 'minimatch@^3.0.0, minimatch@^3.0.2, "minimatch@2 || 3"';
         $versionStrings = Parser::parseVersionStrings($input);
